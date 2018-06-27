@@ -1,20 +1,31 @@
 #!/usr/bin/python
 #
+#################### W.X. #############################
 ############### WORMHOLE EXPLORER #####################
 #
 # Wormhole Explorer allows you to study monodromy factorisations
 # associated with wormhole pairs.
 #
-# wexp.py introduces two new Python classes:
+# wx.py introduces two new Python classes:
 #
 # CF, the class of continued fractions
 #
 # Fibration, the class of (planar) Lefschetz fibrations whose
 # monodromies are convex Dehn twists
 #
+# Example of use:
+#
+# print(Fibration.find(175,64,2))
+#
+# prints the (monodromy factorisations for the) Bhupal-Ozbagci
+# Lefschetz fibrations of all Stein fillings of L(175,64) with b_2=2.
+#
+#
 #######################################################
 
 from fractions import Fraction
+
+########## Hirzebruch-Jung continued fractions
 
 class CF:
     '''CF: The class of continued fractions
@@ -49,6 +60,9 @@ Static methods:
         '''
         self.hjstring=hjstring
 
+    def __repr__(self):
+        return str(self.hjstring)
+        
     def evaluate(self):
         '''Usage:
 
@@ -61,21 +75,25 @@ Static methods:
         c=self.hjstring
         ans=c[len(c)-1]
         for i in reversed(c[0:len(c)-1]):
-            ans=i-Fraction(1,ans)
+            if ans==0:
+                return None
+            else:
+                ans=i-Fraction(1,ans)
         return ans
 
-    def find_zcfs(self):
+    def find_zcfs(self,l):
         '''Usage:
 
-        c.find_zcfs()
+        c.find_zcfs(l)
 
-        Returns a list of 3-tuples (d,i,j) where
+        Returns a list of pairs (d,I) where
 
         - d is a zero-continued fraction,
         
-        - i and j are indices of coefficients in d
+        - I is a list of length l comprising indices (possibly
+          repeated) of coefficients in d,
 
-        such that if you augment d_i and d_j each by 1 then you get c
+        such that if, for each i in I, you augment d_i by 1 then you get c.
 
         If c=P/Q then these triples correspond under Lisca's
         classification to Stein fillings of the lens space L(P,P-Q).
@@ -83,12 +101,33 @@ Static methods:
         '''
         c=self.hjstring # c=[c_1,...,c_n]
         idx=[]
-        for i in range(0,len(c)):
-            for j in range(i+1,len(c)):
-                # d = [c_1,...,c_i-1,...,c_j-1,...,c_n]
-                d=CF([c[k] if k not in [i,j] else c[k]-1 for k in range(0,len(c))])                
-                if d.evaluate()==0:
-                    idx.append((d,i,j)) # if d is a zero continued
+
+        zlist=([c,()],)
+        for i in range(0,l):
+            newlist=tuple()
+            for a in zlist:
+                z=a[0]
+                idces=a[1]
+                if idces==():
+                    bound=len(c)-1
+                else:
+                    bound=idces[-1]
+                for i in range(0,bound+1):
+                    if z[i]>=2:
+                        decrement=tuple(z[k] if k!=i else z[k]-1 for k in range(0,len(z)))
+                        newelt=(decrement,idces+(i,))
+                        newlist=newlist+(newelt,)
+            zlist=newlist
+        for a in zlist:
+            z=CF(list(a[0]))
+            if z.evaluate()==0:
+                idx.append((z,a[1]))
+        #for i in range(0,len(c)):
+        #    for j in range(i+1,len(c)):
+        #        # d = [c_1,...,c_i-1,...,c_j-1,...,c_n]
+        #        d=CF([c[k] if k not in [i,j] else c[k]-1 for k in range(0,len(c))])                
+        #        if d.evaluate()==0:
+        #            idx.append((d,i,j)) # if d is a zero continued
                                         # fraction, add this 3-tuple
                                         # to the list
         return idx
@@ -171,7 +210,8 @@ Static methods:
         '''
         return CF(CF.calculate_cf(a,b))
 
-                    
+################ Bhupal-Ozbagci Lefschetz Fibrations (BOLFs)
+    
 class Fibration:
     '''Fibration.
 
@@ -253,7 +293,7 @@ Static methods:
 
     def __repr__(self):
         '''For printing information about Lefschetz fibrations.'''
-        string="Zero-continued fraction "+str(self.zcf)+": \nMonodromy factorisation \n"+str(self.word)
+        string="\nZero-continued fraction "+str(self.zcf)+": \nMonodromy factorisation \n"+str(self.word)+"\n\n"
         return string
         
     def blowup(self,i):
@@ -315,21 +355,24 @@ Static methods:
         return G
 
     @staticmethod
-    def find(a,b):
+    def find(a,b,l):
         '''Usage:
 
-        Fibration.find(a,b)
+        Fibration.find(a,b,l)
 
-        Returns the Lefschetz fibrations for any wormhole pair
-        associated to the lens space L(a,b).
+        Returns the Lefschetz fibrations for any Stein filling of
+        L(a,b) with second Betti number l.
+
         '''
         x=CF.cf(a,a-b)
-        z=x.find_zcfs()
+        z=x.find_zcfs(l)
         fibrations=[]
-        for triplet in z:
-            c,i,j=triplet
+        for zcf in z:
+            c,I=zcf
             seq=c.findseq()
-            F=Fibration.initial().blowseq(seq).augment(i).augment(j)
+            F=Fibration.initial().blowseq(seq)
+            for i in I:
+                F=F.augment(i)
             fibrations.append(F)
         return fibrations
 
