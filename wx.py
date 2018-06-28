@@ -3,6 +3,8 @@
 #################### W.X. #############################
 ############### WORMHOLE EXPLORER #####################
 #
+# 
+#
 # Wormhole Explorer allows you to study monodromy factorisations
 # associated with wormhole pairs.
 #
@@ -28,6 +30,8 @@
 #######################################################
 
 from fractions import Fraction
+from math import gcd
+from pprint import pprint
 
 ########## Hirzebruch-Jung continued fractions
 
@@ -99,7 +103,8 @@ Static methods:
 
         Returns a list of pairs (d,I) where
 
-        - d is a zero-continued fraction,
+        - d is a zero-continued fraction, generated from [1,1] by
+          blowing up.
         
         - I is a list of length l comprising indices (possibly
           repeated) of coefficients in d,
@@ -132,10 +137,10 @@ Static methods:
                     bound=len(c)-1
                 else:
                     bound=idces[-1]
-                for i in range(0,bound+1):
-                    if z[i]>=2:
-                        decrement=tuple(z[k] if k!=i else z[k]-1 for k in range(0,len(z)))
-                        newelt=(decrement,idces+(i,))
+                for j in range(0,bound+1):
+                    if z[j]>=2:
+                        decrement=tuple(z[k] if k!=j else z[k]-1 for k in range(0,len(z)))
+                        newelt=(decrement,idces+(j,))
                         newlist=newlist+(newelt,)
             zlist=newlist
 
@@ -146,8 +151,9 @@ Static methods:
         smaller_zcfs=[]
         for a in zlist:
             z=HJCF(list(a[0]))
-            if z.evaluate()==0:
-                smaller_zcfs.append((z,a[1]))
+            minimal_model=z.find_blowdown_sequence()[0].hjstring
+            if minimal_model==[1,1]:
+                smaller_zcfs.append((HJCF(list(a[0])),a[1]))
         return smaller_zcfs
 
     def blowdown(self,i):
@@ -162,6 +168,8 @@ Static methods:
         '''
         c=self.hjstring
 
+        if c==[1]:
+            return HJCF([])
         if i==0:
             newhj=[c[1]-1]+c[2:]
         elif i==len(c)-1:
@@ -192,8 +200,9 @@ Static methods:
 
         c.find_blowdown_sequence()
 
-        Returns a sequence [a_1,...,a_k] such that blowing down c at
-        position a_k, a_{k-1},...,a_1 results in either:
+        Returns a minimal model for c together with a sequence
+        [a_1,...,a_k] such that blowing down c at position a_k,
+        a_{k-1},...,a_1 results in either:
 
         - a minimal continued fraction (if c.evaluate()!=0)
 
@@ -207,13 +216,14 @@ Static methods:
 
         '''
         if self.is_minimal() or self.hjstring==[1,1]:
-            return []
+            return (self,[])
         else:
             # The next line locates the first instance j of the value 1 in
             # the HJ string:
             j,k=next(((i,val) for i,val in enumerate(self.hjstring) if val==1))
             newhjcf=self.blowdown(j)
-            return newhjcf.find_blowdown_sequence()+[j]
+            nextterm=newhjcf.find_blowdown_sequence()
+            return (nextterm[0],nextterm[1]+[j])
 
 
     @staticmethod
@@ -465,7 +475,7 @@ Static methods:
         fibrations=[]
         for zcf in z:
             c,I=zcf
-            seq=c.find_blowdown_sequence()
+            minimal_model,seq=c.find_blowdown_sequence()
             F=BOLF.initial().blowup_sequence(seq)
             for i in I:
                 F=F.augment(i)
@@ -558,3 +568,49 @@ Static methods:
 
         '''
         return BOLF([0,1],[[1]],[1,1],())
+
+def find_wormholes(N):
+    '''Usage:
+
+    find_wormholes(N)
+
+    Returns a dictionary whose keys are all lens spaces L(p,q) with
+    p<N admitting two Stein fillings with b_2=1, and whose entry for
+    the key L(p,q) is the pair of augmented zero continued fractions
+    giving the fillings.
+
+    '''
+    wormholes={}
+    for p in range(2,N):
+        qs=[q for q in range(1,p//2+1) if gcd(p,q)==1]
+        for q in qs:
+            L=HJCF.hjcf(p,p-q).find_smaller_zcfs(2)
+            if len(L)==2:
+                wormholes[(p,q)]=L
+    wormholes_strings={}
+    for keys in wormholes:
+        J,K=wormholes[keys]
+        Jzcf=[str(z) for z in J[0].hjstring]
+        for i in J[1]:
+            Jzcf[i]=Jzcf[i]+"*"
+        Kzcf=[str(z) for z in K[0].hjstring]
+        for i in K[1]:
+            Kzcf[i]=Kzcf[i]+"*"
+        wormholes_strings[keys]=(Jzcf,Kzcf)
+    return wormholes_strings
+
+def print_wormholes(N):
+    '''Usage:
+
+    print_wormholes(N)
+
+    Prints the output of find_wormholes(N) in a more readable way.
+
+    '''
+    wm=find_wormholes(N)
+    for keys in wm:
+        print(keys,":")
+        for filling in wm[keys]:
+            print('   [%s]' % ', '.join(map(str, filling)))
+
+print_wormholes(150)
