@@ -10,10 +10,9 @@
 #
 # wx.py introduces two new Python classes:
 #
-# CF, the class of continued fractions
+#   HJCF, the class of Hirzebruch-Jung continued fractions
 #
-# Fibration, the class of (planar) Lefschetz fibrations whose
-# monodromies are convex Dehn twists
+#   BOLF, the class of Bhupal-Ozbagci Lefschetz fibrations
 #
 # Examples of use:
 #
@@ -613,4 +612,3 @@ def print_wormholes(N):
         for filling in wm[keys]:
             print('   [%s]' % ', '.join(map(str, filling)))
 
-print_wormholes(150)

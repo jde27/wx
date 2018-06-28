@@ -1,0 +1,32 @@
+wx Wormhole Explorer
+
+Wormhole Explorer allows you to study monodromy factorisations
+associated with wormhole pairs.
+
+wx.py introduces two new Python classes:
+
+HJCF, the class of Hirzebruch-Jung continued fractions
+
+BOLF, the class of Bhupal-Ozbagci Lefschetz fibrations
+
+Examples of use:
+
+$ print_wormholes(50)
+
+(prints all lens spaces admitting two Stein fillings with b_2=1,
+together with the corresponding zero-continued fraction data
+needed to recreate the fillings.)
+
+$ BOLF.find(175,64,2)
+
+(returns the (monodromy factorisations for the) Bhupal-Ozbagci
+Lefschetz fibrations of all Stein fillings of L(175,64) with
+b_2=2.)
+
+$ BOLF.simplify(BOLF.find(175,64)
+
+(returns a simplified version of the monodromy factorisation
+coming from the (175,64) wormhole.)
+
+
+
