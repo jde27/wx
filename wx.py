@@ -180,6 +180,29 @@ Static methods:
 
         return HJCF(newhj)
 
+    def blowup(self,i):
+        '''Usage:
+
+        c.blowup(i)
+
+        Given a HJCF string c=[c_0,...,c_{r-1}], this returns the string
+        or [1,c_0+1,...,c_{r-1}]                if i == 0
+        [c_0,...,c_{i-1}+1,1,c_i+1,...,c_{r-1}] if 0 < i < r
+        or [c_0,...,c_{r-1}+1,1]                if i == r
+        '''
+        c=self.hjstring
+
+        if i==0:
+            newhj=[1]+c
+        elif i==len(c):
+            newhj=c[0:i]+[c[i]+1,1]
+        elif i==len(c)-1:
+            newhj=c[0:i-1]+[c[i-1]+1,1,c[i]+1]
+        else:
+            newhj=c[0:i-1]+[c[i-1]+1,1,c[i]+1]+c[i+1:]
+
+        return HJCF(newhj)
+    
     def is_minimal(self):
         '''Usage:
 
@@ -354,7 +377,8 @@ Static methods:
             Lefschetz fibration.
 
         zcf, augmentations --- the data needed by the Bhupal-Ozbagci
-            algorithm to produce a Lefschetz fibration.
+            algorithm to produce a Lefschetz fibration. zcf has type
+            HJCF, augmentations is a tuple of integers.
 
         '''
         self.punctures=punctures
@@ -364,7 +388,7 @@ Static methods:
 
     def __repr__(self):
         '''Prints information about Lefschetz fibrations.'''
-        zcf=[str(z) for z in self.zcf]
+        zcf=[str(z) for z in self.zcf.hjstring]
         for i in self.augmentations:
             zcf[i]=zcf[i]+"*"
         string="\nZero-continued fraction: |"
@@ -394,13 +418,21 @@ Static methods:
         If F is a Lefschetz fibration with puncture set [0,...,n-1]
         and monodromy factorisation given by a list of convex Dehn
         twists then F.blowup(i) is a new Lefschetz fibration:
-        
+
+        If i < n then
+
         - the ith puncture "buds" into two; all listed convex twists
           which formerly contained i now contain both i and i+1 (and
           the indices from i+1 onwards are shifted up by 1).
 
         - an extra twist in a new convex loop is added; this loop
           encloses [0,...,i-1,i+1]
+        
+        If i = n then
+
+        - we add an extra puncture at the end
+
+        - we add the Dehn twist around this puncture.
 
         '''
         if self.is_augmented():
@@ -411,8 +443,11 @@ Static methods:
         newpunctures=[i for i in range(0,len(self.punctures)+1)]
 
         # Extra twist in the convex loop enclosing [0,...,i-1,i+1]
-        
-        extratwist=[k for k in range(0,i)]+[i+1]
+
+        if i==len(self.punctures):
+            extratwist=[len(self.punctures)]
+        else:
+            extratwist=[k for k in range(0,i)]+[i+1]
 
         # New monodromy factorisation:
         
@@ -427,7 +462,7 @@ Static methods:
 
         # New zero continued fraction and augmentation
         
-        newzcf=self.zcf[0:i-1]+[self.zcf[i-1]+1,1,self.zcf[i]+1]+self.zcf[i+1:len(self.zcf)]
+        newzcf=self.zcf.blowup(i)
         newaug=()
         
         return BOLF(newpunctures,newword,newzcf,newaug)
@@ -566,7 +601,7 @@ Static methods:
         from this one.
 
         '''
-        return BOLF([0,1],[[1]],[1,1],())
+        return BOLF([0,1],[[1]],HJCF([1,1]),())
 
 def find_wormholes(N):
     '''Usage:
